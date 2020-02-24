@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    tools:ignore="MissingDefaultResource">
+
+    <TextView
+        android:id="@+id/lbltime"
+        android:layout_width="367dp"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginStart="30dp"
+        android:layout_marginLeft="30dp"
+        android:layout_marginBottom="183dp"
+        android:text="안녕하세요 해피런입니다^^"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:typeface="monospace" />
+
+    <Button
+        android:id="@+id/btnStart"
+        android:layout_width="130dp"
+        android:layout_height="70dp"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginStart="30dp"
+        android:layout_marginLeft="30dp"
+        android:layout_marginTop="13dip"
+        android:layout_marginBottom="60dp"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:typeface="monospace"
+        android:drawableLeft="@drawable/running"
+        android:text="달리기 시작" />
+
+    <Button
+        android:id="@+id/btnStop"
+        android:layout_width="130dp"
+        android:layout_height="70dp"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginTop="13dip"
+        android:layout_marginEnd="30dp"
+        android:layout_marginRight="30dp"
+        android:layout_marginBottom="60dp"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:typeface="monospace"
+        android:drawableLeft="@drawable/stop"
+        android:text="달리기 종료" />
+
+
+    <net.daum.mf.map.api.MapView
+        android:id="@+id/map_view"
+        android:layout_width="match_parent"
+        android:layout_height="378dp" />
+
+    <TextView
+        android:id="@+id/lbldistance"
+        android:layout_width="377dp"
+        android:layout_height="34dp"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginStart="30dp"
+        android:layout_marginLeft="30dp"
+        android:layout_marginBottom="144dp"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:typeface="monospace"
+        android:text="거리 : " />
+
+</RelativeLayout>
