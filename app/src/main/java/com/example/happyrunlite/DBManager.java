@@ -10,6 +10,12 @@ public class DBManager extends SQLiteOpenHelper {
     public static final int DB_VERSION = 1;
     public static final String DBFLIE_HAPPYRUN = "happyrun.db";
 
+    private  static DBManager m_dbManager = null;
+
+
+
+
+
     public DBManager(Context context) {
         super(context, DBFLIE_HAPPYRUN, null, DB_VERSION);
     }
@@ -30,6 +36,13 @@ public class DBManager extends SQLiteOpenHelper {
     @Override
     public void onDowngrade(SQLiteDatabase db, int oldVersion, int newVersion){
         // onUpgrade(db, oldVersion, newVersion)
+    }
+
+    public static DBManager getInstance(Context context){
+        if(m_dbManager == null){
+            m_dbManager = new DBManager(context);
+        }
+        return m_dbManager;
     }
 
 }

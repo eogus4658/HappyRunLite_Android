@@ -3,7 +3,6 @@ package com.example.happyrunlite;
 
 
 import android.Manifest;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -294,8 +293,7 @@ public class RunningFragment extends Fragment implements MapView.CurrentLocation
     }
 
     private void init_tables() {
-        m_dbmanager = new DBManager(getContext());
-
+        m_dbmanager = DBManager.getInstance(getContext());
     }
 
     private void save_values(){

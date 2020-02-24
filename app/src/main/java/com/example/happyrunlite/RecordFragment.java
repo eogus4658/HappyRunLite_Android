@@ -122,7 +122,7 @@ public class RecordFragment extends Fragment {
 
     // --------------- DB 처리함수
     private void init_tables() {
-                m_dbmanager = new DBManager(getContext());
+                m_dbmanager = DBManager.getInstance(getContext());
     }
     private void load_values(){
         SQLiteDatabase db = m_dbmanager.getReadableDatabase() ;
