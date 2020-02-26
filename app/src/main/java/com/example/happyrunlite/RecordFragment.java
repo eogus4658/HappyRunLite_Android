@@ -2,7 +2,6 @@ package com.example.happyrunlite;
 
 import android.content.Context;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -42,7 +41,7 @@ public class RecordFragment extends Fragment {
     ArrayList<RecordData> recordDataList;
 
     View m_view;
-    DBManager m_dbmanager;
+    DBManager m_dbmanager = null;
     ListViewAdapter mylistviewadapter;
     private Context context;
 
@@ -52,9 +51,10 @@ public class RecordFragment extends Fragment {
         System.out.println("onCreateView RecordFragment");
         m_view = inflater.inflate(R.layout.recordpage, container, false);
 
-        this.InitializeRecordData();
-
         context = container.getContext();
+        m_dbmanager = DBManager.getInstance(getContext());
+
+        this.InitializeRecordData();
 
         final ListView listView = (ListView) m_view.findViewById(R.id.listView);
         mylistviewadapter = new ListViewAdapter(getActivity(), recordDataList);
@@ -84,7 +84,7 @@ public class RecordFragment extends Fragment {
                                 Log.e("DEBUG", "index: " + index);
                                 recordDataList.remove(index);
                                 String strdate = ((TextView)m_view.findViewById(R.id.date)).getText().toString();
-                                delete_values(strdate);
+                                m_dbmanager.delete_values(strdate);
                                 Log.e("DEBUG", strdate);
                                 ((MainActivity)getActivity()).refresh();
                                 Toast.makeText(context, "정상적으로 삭제되었습니다.", Toast.LENGTH_SHORT).show();
@@ -116,18 +116,12 @@ public class RecordFragment extends Fragment {
     {
         recordDataList = new ArrayList<RecordData>();
         // 데이터베이스 불러와서 여기에서 Add하기
-        init_tables();
         load_values();
     }
 
-    // --------------- DB 처리함수
-    private void init_tables() {
-                m_dbmanager = DBManager.getInstance(getContext());
-    }
+    // --------------- DB 처리함수 -----------------
     private void load_values(){
-        SQLiteDatabase db = m_dbmanager.getReadableDatabase() ;
-        String SQL_SELECT = "SELECT * FROM " + "HAPPYRUNDB" ;
-        Cursor cursor = db.rawQuery(SQL_SELECT, null) ;
+        Cursor cursor = m_dbmanager.load_db_cursor();
 
             for(int i = 0; i< cursor.getCount(); i++) {
                 cursor.moveToNext();
@@ -141,11 +135,4 @@ public class RecordFragment extends Fragment {
             }
 
         }
-
-        private void delete_values(String date){
-            SQLiteDatabase db = m_dbmanager.getWritableDatabase();
-            db.execSQL("DELETE FROM HAPPYRUNDB WHERE DATE = '" + date + "'");
-        }
-
-
 }

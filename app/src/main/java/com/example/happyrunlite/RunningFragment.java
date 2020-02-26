@@ -6,8 +6,6 @@ import android.Manifest;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteException;
 import android.graphics.Color;
 import android.location.LocationManager;
 import android.os.Bundle;
@@ -41,22 +39,101 @@ import java.util.TimerTask;
 
 import static android.content.Context.LOCATION_SERVICE;
 
-
 public class RunningFragment extends Fragment implements MapView.CurrentLocationEventListener, MapReverseGeoCoder.ReverseGeoCodingResultListener {
     DBManager m_dbmanager = null;
     View m_view;
     boolean m_brunning = false;
     double m_distance = 0.0;
-    private RecordFragment m_recordfragment;
+
     // ---------------- mapview code -----------------
     private static final String LOG_TAG = "MainActivity";
-
     private MapView mMapView;
-
 
     private static final int GPS_ENABLE_REQUEST_CODE = 2001;
     private static final int PERMISSIONS_REQUEST_CODE = 100;
     String[] REQUIRED_PERMISSIONS  = {Manifest.permission.ACCESS_FINE_LOCATION};
+    MapPolyline m_polyline = new MapPolyline();
+    MapPoint.GeoCoordinate formercoord;
+
+    @Nullable
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        m_view = inflater.inflate(R.layout.runningpage, container, false);
+
+        // ------------- DB code ------------------------
+        m_dbmanager = DBManager.getInstance(getContext());
+
+        // ---------------- mapview code -----------------
+        mMapView = (MapView)m_view.findViewById(R.id.map_view);
+        //mMapView.setDaumMapApiKey(MapApiConst.DAUM_MAPS_ANDROID_APP_API_KEY);
+        mMapView.setCurrentLocationEventListener(this);
+
+        if (!checkLocationServicesStatus()) {
+
+            showDialogForLocationServiceSetting();
+        }else {
+            checkRunTimePermission();
+        }
+
+        // ------------------------------------------------
+        final TextView lblrun_time = (TextView) m_view.findViewById(R.id.lbltime);
+        tt = timerTaskMaker();
+        try{
+            final Button BtnStart = (Button) m_view.findViewById(R.id.btnStart);
+            final Button BtnStop = (Button) m_view.findViewById(R.id.btnStop);
+            BtnStart.setEnabled(true); // 초기화
+            BtnStop.setEnabled(false);
+            BtnStart.setOnClickListener(new Button.OnClickListener() {
+                @Override
+                public void onClick(View view) { // 달리기 시작버튼 이벤트 처리
+                    m_brunning = true;
+                    BtnStart.setEnabled(false);
+                    BtnStop.setEnabled(true);
+                    runcount = 0;
+                    m_distance = 0.0;
+                    try{
+                        tt = timerTaskMaker();
+                        final Timer timer = new Timer();
+                        timer.schedule(tt,1000,1000);
+                    } catch(Exception e) {
+                        StringWriter sw = new StringWriter();
+                        e.printStackTrace(new PrintWriter(sw));
+                        String exceptionAsStrting = sw.toString();
+
+                        Log.e("Timer Error Detected!!!", exceptionAsStrting);
+                    }
+
+                }
+            });
+            BtnStop.setOnClickListener(new Button.OnClickListener() {
+                @Override
+                public void onClick(View view) { // 달리기 종료버튼 이벤트 처리
+                    m_brunning = false;
+                    BtnStart.setEnabled(true);
+                    BtnStop.setEnabled(false);
+                    tt.cancel();
+
+                    // ---- DB저장 -------------
+                    TextView timetext = (TextView) m_view.findViewById(R.id.lbltime);
+                    String strtime = timetext.getText().toString();
+                    TextView distancetext = (TextView) m_view.findViewById(R.id.lbldistance);
+                    String strdist = distancetext.getText().toString();
+                    m_dbmanager.save_values(strtime, strdist);
+
+                    ((MainActivity)getActivity()).refresh();
+                }
+            });
+            throw new Exception();
+        }catch(Exception e) {
+            StringWriter sw = new StringWriter();
+            e.printStackTrace(new PrintWriter(sw));
+            String exceptionAsStrting = sw.toString();
+
+            // Log.e("Button Error Detected", exceptionAsStrting);
+        }
+
+        return m_view;
+    }
 
     @Override
     public void onDestroy() {
@@ -64,10 +141,8 @@ public class RunningFragment extends Fragment implements MapView.CurrentLocation
         mMapView.setCurrentLocationTrackingMode(MapView.CurrentLocationTrackingMode.TrackingModeOff);
         mMapView.setShowCurrentLocationMarker(false);
     }
-    
-    MapPolyline m_polyline = new MapPolyline();
-    MapPoint.GeoCoordinate formercoord;
 
+    // ---- CurrentLocationEventListener GPS 관련처리 ----
     @Override
     public void onCurrentLocationUpdate(MapView mapView, MapPoint currentLocation, float accuracyInMeters) { // GPS가 업데이트 되면 이 함수가 호출됩니다.
         if(m_brunning == true) {
@@ -88,7 +163,6 @@ public class RunningFragment extends Fragment implements MapView.CurrentLocation
             Log.i(LOG_TAG, String.format("MapView onCurrentLocationUpdate (%f,%f) accuracy (%f)", mapPointGeo.latitude, mapPointGeo.longitude, accuracyInMeters));
         }
     }
-
 
     @Override
     public void onCurrentLocationDeviceHeadingUpdate(MapView mapView, float v) {
@@ -213,8 +287,6 @@ public class RunningFragment extends Fragment implements MapView.CurrentLocation
 
     }
 
-
-
     //여기부터는 GPS 활성화를 위한 메소드들
     private void showDialogForLocationServiceSetting() {
 
@@ -269,142 +341,11 @@ public class RunningFragment extends Fragment implements MapView.CurrentLocation
         return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
                 || locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
     }
-    // -------------------------------------------------
-
-
-
-    private SQLiteDatabase init_database() {
-
-        SQLiteDatabase db = null ;
-        File file = new File(getActivity().getFilesDir(), "happyrun.db") ;
-
-        System.out.println("PATH : " + file.toString()) ;
-        try {
-            db = SQLiteDatabase.openOrCreateDatabase(file, null) ;
-        } catch (SQLiteException e) {
-            e.printStackTrace() ;
-        }
-
-        if (db == null) {
-            System.out.println("DB creation failed. " + file.getAbsolutePath()) ;
-        }
-
-        return db ;
-    }
-
-    private void init_tables() {
-        m_dbmanager = DBManager.getInstance(getContext());
-    }
-
-    private void save_values(){
-        SQLiteDatabase db = m_dbmanager.getWritableDatabase() ;
-        TextView timetext = (TextView) m_view.findViewById(R.id.lbltime);
-        String strtime = timetext.getText().toString();
-        TextView distancetext = (TextView) m_view.findViewById(R.id.lbldistance);
-        String strdist = distancetext.getText().toString();
-        String strrecord = strtime + " , " + strdist;
-
-        // 현재시간을 msec 으로 구한다.
-        long now = System.currentTimeMillis();
-        // 현재시간을 date 변수에 저장한다.
-        Date date = new Date(now);
-        // 시간을 나타냇 포맷을 정한다 ( yyyy/MM/dd 같은 형태로 변형 가능 )
-        SimpleDateFormat sdfNow = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-        // nowDate 변수에 값을 저장한다.
-        String nowTime = sdfNow.format(date);
-
-        String sqlInsert = "INSERT INTO HAPPYRUNDB " +
-                    "(RECORD , DATE) VALUES (" +
-                    "'" + strrecord + "'," +
-                    "'" + nowTime + "'" + ")" ;
-
-            System.out.println(sqlInsert) ;
-
-            db.execSQL(sqlInsert) ;
-        }
-
 
     static int runcount = 0;
     static TimerTask tt;
 
 
-    @Nullable
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        m_view = inflater.inflate(R.layout.runningpage, container, false);
-        // ------------- DB code ------------------------
-        init_tables();
-
-
-
-
-
-        // ---------------- mapview code -----------------
-        mMapView = (MapView)m_view.findViewById(R.id.map_view);
-        //mMapView.setDaumMapApiKey(MapApiConst.DAUM_MAPS_ANDROID_APP_API_KEY);
-        mMapView.setCurrentLocationEventListener(this);
-
-        if (!checkLocationServicesStatus()) {
-
-            showDialogForLocationServiceSetting();
-        }else {
-
-            checkRunTimePermission();
-        }
-
-        // ------------------------------------------------
-        final TextView lblrun_time = (TextView) m_view.findViewById(R.id.lbltime);
-        tt = timerTaskMaker();
-        try{
-            final Button BtnStart = (Button) m_view.findViewById(R.id.btnStart);
-            final Button BtnStop = (Button) m_view.findViewById(R.id.btnStop);
-            BtnStart.setEnabled(true); // 초기화
-            BtnStop.setEnabled(false);
-            BtnStart.setOnClickListener(new Button.OnClickListener() {
-                @Override
-                public void onClick(View view) { // 달리기 시작버튼 이벤트 처리
-                    m_brunning = true;
-                    BtnStart.setEnabled(false);
-                    BtnStop.setEnabled(true);
-                    runcount = 0;
-                    m_distance = 0.0;
-                    try{
-                        tt = timerTaskMaker();
-                        final Timer timer = new Timer();
-                        timer.schedule(tt,1000,1000);
-                    } catch(Exception e) {
-                        StringWriter sw = new StringWriter();
-                        e.printStackTrace(new PrintWriter(sw));
-                        String exceptionAsStrting = sw.toString();
-
-                        Log.e("Timer Error Detected!!!", exceptionAsStrting);
-                    }
-
-                }
-            });
-            BtnStop.setOnClickListener(new Button.OnClickListener() {
-                @Override
-                public void onClick(View view) { // 달리기 종료버튼 이벤트 처리
-                    m_brunning = false;
-                    BtnStart.setEnabled(true);
-                    BtnStop.setEnabled(false);
-                    tt.cancel();
-                    // ---- DB저장 -------------
-                    save_values();
-                    ((MainActivity)getActivity()).refresh();
-                }
-            });
-            throw new Exception();
-        }catch(Exception e) {
-            StringWriter sw = new StringWriter();
-            e.printStackTrace(new PrintWriter(sw));
-            String exceptionAsStrting = sw.toString();
-
-            // Log.e("Button Error Detected", exceptionAsStrting);
-        }
-
-        return m_view;
-    }
     public TimerTask timerTaskMaker(){
         TimerTask tempTask = new TimerTask(){
             @Override
@@ -467,6 +408,4 @@ public class RunningFragment extends Fragment implements MapView.CurrentLocation
         private double rad2deg(double rad) {
             return (rad * 180 / Math.PI);
         }
-
-
 }

@@ -32,7 +32,7 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-    public void refresh(){ // ViewPager 재시작
+    public void refresh() { // ViewPager 재시작
         Log.e("DEBUG", "mainactivity refresh");
         viewPagerAdapter.notifyDataSetChanged();
     }
